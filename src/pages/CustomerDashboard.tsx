@@ -8,9 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
   Search, MapPin, Star, Clock, Home, Building, Sparkles, Shirt, 
-  Truck, Hammer, LayoutGrid, Square, LogOut, User, Calendar
+  Truck, Hammer, LayoutGrid, Square, LogOut, User, Calendar, Map as MapIcon, List
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ProvidersMap from '@/components/ProvidersMap';
 
 interface ServiceCategory {
   id: string;
@@ -28,6 +29,8 @@ interface Provider {
   rating: number;
   total_reviews: number;
   is_available: boolean;
+  location_lat: number | null;
+  location_lng: number | null;
 }
 
 interface Booking {
@@ -53,6 +56,19 @@ const iconMap: Record<string, any> = {
   square: Square,
 };
 
+// Calculate distance between two points using Haversine formula
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
 const CustomerDashboard = () => {
   const navigate = useNavigate();
   const { user, signOut, loading } = useAuth();
@@ -62,6 +78,8 @@ const CustomerDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [view, setView] = useState<'browse' | 'bookings'>('browse');
+  const [displayMode, setDisplayMode] = useState<'map' | 'list'>('map');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -75,7 +93,31 @@ const CustomerDashboard = () => {
     if (user) {
       fetchBookings();
     }
+    // Try to get user location on mount
+    getCurrentLocation();
   }, [user]);
+
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.log('Could not get location:', error);
+          // Default to Nairobi
+          setUserLocation({ lat: -1.2921, lng: 36.8219 });
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      // Default to Nairobi
+      setUserLocation({ lat: -1.2921, lng: 36.8219 });
+    }
+  };
 
   const fetchCategories = async () => {
     const { data } = await supabase
@@ -106,7 +148,27 @@ const CustomerDashboard = () => {
     if (data) setBookings(data as unknown as Booking[]);
   };
 
-  const filteredProviders = providers.filter((provider) => {
+  // Sort providers by distance from user
+  const sortedProviders = [...providers]
+    .map(provider => {
+      let distance = null;
+      if (userLocation && provider.location_lat && provider.location_lng) {
+        distance = calculateDistance(
+          userLocation.lat, 
+          userLocation.lng, 
+          provider.location_lat, 
+          provider.location_lng
+        );
+      }
+      return { ...provider, distance };
+    })
+    .sort((a, b) => {
+      if (a.distance === null) return 1;
+      if (b.distance === null) return -1;
+      return a.distance - b.distance;
+    });
+
+  const filteredProviders = sortedProviders.filter((provider) => {
     const matchesSearch = provider.business_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       provider.description?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
@@ -115,6 +177,14 @@ const CustomerDashboard = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleProviderSelect = (providerId: string) => {
+    navigate(`/book/${providerId}`);
+  };
+
+  const handleUserLocationChange = (lat: number, lng: number) => {
+    setUserLocation({ lat, lng });
   };
 
   const getStatusColor = (status: string) => {
@@ -176,18 +246,56 @@ const CustomerDashboard = () => {
       <main className="container mx-auto px-4 py-8">
         {view === 'browse' ? (
           <>
-            {/* Search Bar */}
+            {/* Search Bar with View Toggle */}
             <div className="mb-8">
-              <div className="relative max-w-2xl mx-auto">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  placeholder="Search for cleaners, moving companies..."
-                  className="pl-12 h-14 text-lg"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <div className="flex flex-col md:flex-row gap-4 items-center max-w-4xl mx-auto">
+                <div className="relative flex-1 w-full">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search for cleaners, moving companies..."
+                    className="pl-12 h-14 text-lg"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2 bg-muted rounded-lg p-1">
+                  <Button
+                    variant={displayMode === 'map' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setDisplayMode('map')}
+                  >
+                    <MapIcon className="w-4 h-4 mr-2" />
+                    Map
+                  </Button>
+                  <Button
+                    variant={displayMode === 'list' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setDisplayMode('list')}
+                  >
+                    <List className="w-4 h-4 mr-2" />
+                    List
+                  </Button>
+                </div>
               </div>
+              {userLocation && (
+                <p className="text-center text-sm text-muted-foreground mt-2 flex items-center justify-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  Showing providers near your location
+                </p>
+              )}
             </div>
+
+            {/* Map View */}
+            {displayMode === 'map' && (
+              <section className="mb-8">
+                <ProvidersMap
+                  providers={filteredProviders}
+                  onProviderSelect={handleProviderSelect}
+                  userLocation={userLocation}
+                  onUserLocationChange={handleUserLocationChange}
+                />
+              </section>
+            )}
 
             {/* Service Categories */}
             <section className="mb-12">
@@ -218,9 +326,11 @@ const CustomerDashboard = () => {
               </div>
             </section>
 
-            {/* Available Providers */}
+            {/* Available Providers List */}
             <section>
-              <h2 className="text-2xl font-bold mb-6">Available Providers Near You</h2>
+              <h2 className="text-2xl font-bold mb-6">
+                {displayMode === 'map' ? 'Nearby Providers' : 'Available Providers Near You'}
+              </h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredProviders.map((provider) => (
                   <Card key={provider.id} className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -243,11 +353,21 @@ const CustomerDashboard = () => {
                         {provider.description || 'Professional service provider ready to help.'}
                       </p>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Clock className="w-4 h-4" />
-                          <span className="text-sm">
-                            KES {provider.hourly_rate || '---'}/hr
-                          </span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Clock className="w-4 h-4" />
+                            <span className="text-sm">
+                              KES {provider.hourly_rate || '---'}/hr
+                            </span>
+                          </div>
+                          {(provider as any).distance !== null && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <MapPin className="w-4 h-4" />
+                              <span className="text-sm">
+                                {(provider as any).distance.toFixed(1)} km away
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <Button 
                           size="sm"

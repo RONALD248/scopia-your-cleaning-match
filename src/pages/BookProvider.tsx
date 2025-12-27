@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Star, Clock, MapPin, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import LocationPicker from '@/components/LocationPicker';
 
 interface Provider {
   id: string;
@@ -20,6 +21,8 @@ interface Provider {
   rating: number;
   total_reviews: number;
   total_jobs: number;
+  location_lat: number | null;
+  location_lng: number | null;
 }
 
 const providerTypeLabels: Record<string, string> = {
@@ -27,6 +30,19 @@ const providerTypeLabels: Record<string, string> = {
   cleaning_company: 'Cleaning Company',
   mama_fua: 'Mama Fua',
   moving_company: 'Moving Company',
+};
+
+// Calculate distance between two points using Haversine formula
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
 };
 
 const BookProvider = () => {
@@ -41,6 +57,8 @@ const BookProvider = () => {
     duration: '2',
     address: '',
     notes: '',
+    locationLat: null as number | null,
+    locationLng: null as number | null,
   });
 
   useEffect(() => {
@@ -68,14 +86,40 @@ const BookProvider = () => {
     }
   };
 
+  const handleLocationSelect = (lat: number, lng: number, address?: string) => {
+    setFormData({ 
+      ...formData, 
+      locationLat: lat, 
+      locationLng: lng,
+      address: address || formData.address
+    });
+  };
+
   const calculateTotal = () => {
     if (!provider?.hourly_rate) return 0;
     return provider.hourly_rate * parseInt(formData.duration);
   };
 
+  const getDistanceToProvider = () => {
+    if (!provider?.location_lat || !provider?.location_lng || !formData.locationLat || !formData.locationLng) {
+      return null;
+    }
+    return calculateDistance(
+      formData.locationLat,
+      formData.locationLng,
+      provider.location_lat,
+      provider.location_lng
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !provider) return;
+
+    if (!formData.locationLat || !formData.locationLng) {
+      toast.error('Please set your location on the map');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -90,6 +134,8 @@ const BookProvider = () => {
           address: formData.address,
           notes: formData.notes,
           total_amount: calculateTotal(),
+          location_lat: formData.locationLat,
+          location_lng: formData.locationLng,
         });
 
       if (error) throw error;
@@ -102,6 +148,8 @@ const BookProvider = () => {
       setLoading(false);
     }
   };
+
+  const distance = getDistanceToProvider();
 
   if (authLoading || !provider) {
     return (
@@ -152,6 +200,12 @@ const BookProvider = () => {
               <div className="flex items-center gap-2">
                 <Badge variant="outline">{provider.total_jobs} jobs completed</Badge>
               </div>
+              {distance !== null && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <MapPin className="w-5 h-5" />
+                  <span>{distance.toFixed(1)} km from you</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -201,6 +255,22 @@ const BookProvider = () => {
                 />
               </div>
 
+              {/* Location Picker */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Service Location
+                </Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Click on the map or use your current location to set where the service should be provided.
+                </p>
+                <LocationPicker
+                  onLocationSelect={handleLocationSelect}
+                  initialLat={formData.locationLat || undefined}
+                  initialLng={formData.locationLng || undefined}
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="address">Service Address</Label>
                 <Input
@@ -210,6 +280,9 @@ const BookProvider = () => {
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 />
+                <p className="text-xs text-muted-foreground">
+                  This will be auto-filled when you select a location on the map
+                </p>
               </div>
 
               <div className="space-y-2">
