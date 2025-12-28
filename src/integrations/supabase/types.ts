@@ -119,6 +119,54 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_locations: {
+        Row: {
+          booking_id: string
+          heading: number | null
+          id: string
+          latitude: number
+          longitude: number
+          provider_id: string
+          speed: number | null
+          updated_at: string
+        }
+        Insert: {
+          booking_id: string
+          heading?: number | null
+          id?: string
+          latitude: number
+          longitude: number
+          provider_id: string
+          speed?: number | null
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string
+          heading?: number | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          provider_id?: string
+          speed?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_locations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_locations_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       providers: {
         Row: {
           business_name: string
