@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
   Search, MapPin, Star, Clock, Home, Building, Sparkles, Shirt, 
-  Truck, Hammer, LayoutGrid, Square, LogOut, User, Calendar, Map as MapIcon, List
+  Truck, Hammer, LayoutGrid, Square, LogOut, User, Calendar, Map as MapIcon, List, Navigation
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProvidersMap from '@/components/ProvidersMap';
@@ -421,9 +421,22 @@ const CustomerDashboard = () => {
                           </span>
                         </div>
                       </div>
-                      <Badge className={getStatusColor(booking.status)}>
-                        {booking.status.replace('_', ' ')}
-                      </Badge>
+                      <div className="flex items-center gap-3">
+                        {(booking.status === 'accepted' || booking.status === 'in_progress') && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => navigate(`/track/${booking.id}`)}
+                            className="border-primary text-primary hover:bg-primary/10"
+                          >
+                            <Navigation className="w-4 h-4 mr-2" />
+                            Track
+                          </Button>
+                        )}
+                        <Badge className={getStatusColor(booking.status)}>
+                          {booking.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
