@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useProviderTracking } from '@/hooks/useProviderTracking';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { 
   Calendar, Clock, MapPin, Star, DollarSign, 
-  Users, CheckCircle, XCircle, LogOut, Settings
+  Users, CheckCircle, XCircle, LogOut, Settings, Navigation, MapPinOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -46,6 +47,12 @@ const ProviderDashboard = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isAvailable, setIsAvailable] = useState(true);
   const [view, setView] = useState<'jobs' | 'earnings'>('jobs');
+  const [trackingBookingId, setTrackingBookingId] = useState<string | null>(null);
+  
+  const { isTracking, startTracking, stopTracking } = useProviderTracking(
+    provider?.id || null,
+    trackingBookingId
+  );
 
   useEffect(() => {
     if (!loading && !user) {
@@ -133,8 +140,31 @@ const ProviderDashboard = () => {
           .from('providers')
           .update({ total_jobs: (provider.total_jobs || 0) + 1 })
           .eq('id', provider.id);
+        
+        // Stop tracking when job is completed
+        if (isTracking && trackingBookingId === bookingId) {
+          await stopTracking();
+          setTrackingBookingId(null);
+        }
+      }
+      
+      // Stop tracking if job is cancelled
+      if (status === 'cancelled' && isTracking && trackingBookingId === bookingId) {
+        await stopTracking();
+        setTrackingBookingId(null);
       }
     }
+  };
+
+  const handleStartTracking = async (bookingId: string) => {
+    setTrackingBookingId(bookingId);
+    // Small delay to allow state update
+    setTimeout(() => startTracking(), 100);
+  };
+
+  const handleStopTracking = async () => {
+    await stopTracking();
+    setTrackingBookingId(null);
   };
 
   const handleSignOut = async () => {
@@ -346,19 +376,59 @@ const ProviderDashboard = () => {
                           </span>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         {booking.status === 'accepted' && (
-                          <Button onClick={() => updateBookingStatus(booking.id, 'in_progress')}>
-                            Start Job
-                          </Button>
+                          <>
+                            {isTracking && trackingBookingId === booking.id ? (
+                              <Button 
+                                variant="outline" 
+                                className="border-orange-200 text-orange-600 hover:bg-orange-50"
+                                onClick={handleStopTracking}
+                              >
+                                <MapPinOff className="w-4 h-4 mr-2" />
+                                Stop Sharing Location
+                              </Button>
+                            ) : (
+                              <Button 
+                                variant="outline"
+                                onClick={() => handleStartTracking(booking.id)}
+                              >
+                                <Navigation className="w-4 h-4 mr-2" />
+                                Share Location
+                              </Button>
+                            )}
+                            <Button onClick={() => updateBookingStatus(booking.id, 'in_progress')}>
+                              Start Job
+                            </Button>
+                          </>
                         )}
                         {booking.status === 'in_progress' && (
-                          <Button 
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => updateBookingStatus(booking.id, 'completed')}
-                          >
-                            Complete Job
-                          </Button>
+                          <>
+                            {isTracking && trackingBookingId === booking.id ? (
+                              <Button 
+                                variant="outline" 
+                                className="border-orange-200 text-orange-600 hover:bg-orange-50"
+                                onClick={handleStopTracking}
+                              >
+                                <MapPinOff className="w-4 h-4 mr-2" />
+                                Stop Sharing
+                              </Button>
+                            ) : (
+                              <Button 
+                                variant="outline"
+                                onClick={() => handleStartTracking(booking.id)}
+                              >
+                                <Navigation className="w-4 h-4 mr-2" />
+                                Share Location
+                              </Button>
+                            )}
+                            <Button 
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => updateBookingStatus(booking.id, 'completed')}
+                            >
+                              Complete Job
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
