@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useProviderTracking } from '@/hooks/useProviderTracking';
+import { sendPushNotification } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -125,6 +126,9 @@ const ProviderDashboard = () => {
   };
 
   const updateBookingStatus = async (bookingId: string, status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled') => {
+    // Find the booking to get customer_id for notification
+    const booking = bookings.find(b => b.id === bookingId);
+    
     const { error } = await supabase
       .from('bookings')
       .update({ status })
@@ -133,6 +137,32 @@ const ProviderDashboard = () => {
     if (!error) {
       toast.success(`Booking ${status}`);
       fetchBookings();
+      
+      // Send push notification to customer
+      if (booking && provider) {
+        if (status === 'accepted') {
+          sendPushNotification(
+            booking.customer_id,
+            'Booking Accepted! 🎉',
+            `${provider.business_name} has accepted your booking for ${new Date(booking.scheduled_date).toLocaleDateString()}`,
+            { url: `/track/${bookingId}` }
+          );
+        } else if (status === 'in_progress') {
+          sendPushNotification(
+            booking.customer_id,
+            'Service Started',
+            `${provider.business_name} has started working on your booking`,
+            { url: `/track/${bookingId}` }
+          );
+        } else if (status === 'completed') {
+          sendPushNotification(
+            booking.customer_id,
+            'Job Completed ✅',
+            `${provider.business_name} has completed your service. Please leave a review!`,
+            { url: '/customer' }
+          );
+        }
+      }
       
       // Update total jobs if completed
       if (status === 'completed' && provider) {
