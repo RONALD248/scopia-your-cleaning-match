@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProvidersMap from '@/components/ProvidersMap';
+import NotificationSettings from '@/components/NotificationSettings';
 
 interface ServiceCategory {
   id: string;
@@ -394,8 +395,11 @@ const CustomerDashboard = () => {
           </>
         ) : (
           /* Bookings View */
-          <section>
-            <h2 className="text-2xl font-bold mb-6">My Bookings</h2>
+          <section className="space-y-6">
+            {/* Notification Settings */}
+            <NotificationSettings />
+
+            <h2 className="text-2xl font-bold">My Bookings</h2>
             <div className="space-y-4">
               {bookings.map((booking) => (
                 <Card key={booking.id}>
