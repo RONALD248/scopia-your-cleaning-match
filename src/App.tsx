@@ -12,6 +12,7 @@ import ProviderDashboard from "./pages/ProviderDashboard";
 import ProviderOnboarding from "./pages/ProviderOnboarding";
 import BookProvider from "./pages/BookProvider";
 import TrackProvider from "./pages/TrackProvider";
+import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/provider/onboarding" element={<ProviderOnboarding />} />
             <Route path="/book/:providerId" element={<BookProvider />} />
             <Route path="/track/:bookingId" element={<TrackProvider />} />
+            <Route path="/chat/:bookingId" element={<Chat />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
   Search, MapPin, Star, Clock, Home, Building, Sparkles, Shirt, 
-  Truck, Hammer, LayoutGrid, Square, LogOut, User, Calendar, Map as MapIcon, List, Navigation
+  Truck, Hammer, LayoutGrid, Square, LogOut, User, Calendar, Map as MapIcon, List, Navigation, MessageCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProvidersMap from '@/components/ProvidersMap';
@@ -425,7 +425,17 @@ const CustomerDashboard = () => {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {booking.status !== 'pending' && booking.status !== 'cancelled' && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => navigate(`/chat/${booking.id}`)}
+                          >
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            Chat
+                          </Button>
+                        )}
                         {(booking.status === 'accepted' || booking.status === 'in_progress') && (
                           <Button 
                             variant="outline" 

@@ -191,29 +191,31 @@ const TrackProvider = () => {
         </Card>
 
         {/* Contact Provider */}
-        {booking.profiles?.phone && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Contact Provider</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-3">
-                <Button className="flex-1" asChild>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Contact Provider</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-3">
+              <Button 
+                variant="default" 
+                className="flex-1"
+                onClick={() => navigate(`/chat/${booking.id}`)}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                In-App Chat
+              </Button>
+              {booking.profiles?.phone && (
+                <Button variant="outline" className="flex-1" asChild>
                   <a href={`tel:${booking.profiles.phone}`}>
                     <Phone className="w-4 h-4 mr-2" />
                     Call
                   </a>
                 </Button>
-                <Button variant="outline" className="flex-1" asChild>
-                  <a href={`sms:${booking.profiles.phone}`}>
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Message
-                  </a>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
