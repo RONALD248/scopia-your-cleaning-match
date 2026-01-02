@@ -3,16 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Search, MapPin, Star, Clock, Home, Building, Sparkles, Shirt, 
-  Truck, Hammer, LayoutGrid, Square, LogOut, User, Calendar, Map as MapIcon, List, Navigation, MessageCircle
+  Truck, Hammer, LayoutGrid, Square, LogOut, User, Calendar, Map as MapIcon, 
+  List, Navigation, MessageCircle, CheckCircle, AlertCircle, XCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProvidersMap from '@/components/ProvidersMap';
 import NotificationSettings from '@/components/NotificationSettings';
+import BookingCard from '@/components/BookingCard';
 
 interface ServiceCategory {
   id: string;
@@ -40,9 +43,14 @@ interface Booking {
   scheduled_date: string;
   scheduled_time: string;
   address: string;
+  duration_hours: number | null;
+  total_amount: number | null;
+  notes: string | null;
+  provider_id: string;
   providers: {
     business_name: string;
     provider_type: string;
+    hourly_rate: number | null;
   };
 }
 
@@ -142,12 +150,19 @@ const CustomerDashboard = () => {
         *,
         providers (
           business_name,
-          provider_type
+          provider_type,
+          hourly_rate
         )
       `)
-      .order('created_at', { ascending: false });
+      .order('scheduled_date', { ascending: true });
     if (data) setBookings(data as unknown as Booking[]);
   };
+
+  // Group bookings by status
+  const pendingBookings = bookings.filter(b => b.status === 'pending');
+  const activeBookings = bookings.filter(b => b.status === 'accepted' || b.status === 'in_progress');
+  const completedBookings = bookings.filter(b => b.status === 'completed');
+  const cancelledBookings = bookings.filter(b => b.status === 'cancelled');
 
   // Sort providers by distance from user
   const sortedProviders = [...providers]
@@ -186,17 +201,6 @@ const CustomerDashboard = () => {
 
   const handleUserLocationChange = (lat: number, lng: number) => {
     setUserLocation({ lat, lng });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-500/10 text-yellow-600';
-      case 'accepted': return 'bg-blue-500/10 text-blue-600';
-      case 'in_progress': return 'bg-primary/10 text-primary';
-      case 'completed': return 'bg-green-500/10 text-green-600';
-      case 'cancelled': return 'bg-red-500/10 text-red-600';
-      default: return 'bg-muted text-muted-foreground';
-    }
   };
 
   const providerTypeLabels: Record<string, string> = {
@@ -399,79 +403,208 @@ const CustomerDashboard = () => {
             {/* Notification Settings */}
             <NotificationSettings />
 
-            <h2 className="text-2xl font-bold">My Bookings</h2>
-            <div className="space-y-4">
-              {bookings.map((booking) => (
-                <Card key={booking.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-lg">{booking.providers?.business_name}</h3>
-                        <p className="text-muted-foreground text-sm">
-                          {providerTypeLabels[booking.providers?.provider_type]}
-                        </p>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {new Date(booking.scheduled_date).toLocaleDateString()}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {booking.scheduled_time}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            {booking.address}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {booking.status !== 'pending' && booking.status !== 'cancelled' && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => navigate(`/chat/${booking.id}`)}
-                          >
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            Chat
-                          </Button>
-                        )}
-                        {(booking.status === 'accepted' || booking.status === 'in_progress') && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => navigate(`/track/${booking.id}`)}
-                            className="border-primary text-primary hover:bg-primary/10"
-                          >
-                            <Navigation className="w-4 h-4 mr-2" />
-                            Track
-                          </Button>
-                        )}
-                        <Badge className={getStatusColor(booking.status)}>
-                          {booking.status.replace('_', ' ')}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {bookings.length === 0 && (
-                <div className="text-center py-12">
-                  <Calendar className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No bookings yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Find a service provider and make your first booking!
-                  </p>
-                  <Button onClick={() => setView('browse')}>Browse Providers</Button>
-                </div>
-              )}
+            {/* Stats Overview */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{pendingBookings.length}</p>
+                    <p className="text-xs text-muted-foreground">Pending</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <Navigation className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{activeBookings.length}</p>
+                    <p className="text-xs text-muted-foreground">Active</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{completedBookings.length}</p>
+                    <p className="text-xs text-muted-foreground">Completed</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{cancelledBookings.length}</p>
+                    <p className="text-xs text-muted-foreground">Cancelled</p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
+
+            {/* Bookings Tabs */}
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="w-full justify-start mb-4 h-auto flex-wrap">
+                <TabsTrigger value="all" className="gap-2">
+                  All
+                  <Badge variant="secondary" className="ml-1">{bookings.length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="gap-2">
+                  <Clock className="w-3 h-3" />
+                  Pending
+                  {pendingBookings.length > 0 && (
+                    <Badge variant="destructive" className="ml-1">{pendingBookings.length}</Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="active" className="gap-2">
+                  <Navigation className="w-3 h-3" />
+                  Active
+                  {activeBookings.length > 0 && (
+                    <Badge className="ml-1 bg-blue-500">{activeBookings.length}</Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="completed" className="gap-2">
+                  <CheckCircle className="w-3 h-3" />
+                  Completed
+                </TabsTrigger>
+                <TabsTrigger value="cancelled" className="gap-2">
+                  <XCircle className="w-3 h-3" />
+                  Cancelled
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="all" className="space-y-4">
+                {bookings.length === 0 ? (
+                  <EmptyBookings onBrowse={() => setView('browse')} />
+                ) : (
+                  bookings.map((booking) => (
+                    <BookingCard 
+                      key={booking.id} 
+                      booking={booking} 
+                      onUpdate={fetchBookings} 
+                    />
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="pending" className="space-y-4">
+                {pendingBookings.length === 0 ? (
+                  <EmptyState 
+                    icon={<Clock className="w-12 h-12" />}
+                    title="No pending bookings"
+                    description="All your bookings have been responded to"
+                  />
+                ) : (
+                  pendingBookings.map((booking) => (
+                    <BookingCard 
+                      key={booking.id} 
+                      booking={booking} 
+                      onUpdate={fetchBookings} 
+                    />
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="active" className="space-y-4">
+                {activeBookings.length === 0 ? (
+                  <EmptyState 
+                    icon={<Navigation className="w-12 h-12" />}
+                    title="No active bookings"
+                    description="You don't have any ongoing services"
+                  />
+                ) : (
+                  activeBookings.map((booking) => (
+                    <BookingCard 
+                      key={booking.id} 
+                      booking={booking} 
+                      onUpdate={fetchBookings} 
+                    />
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="completed" className="space-y-4">
+                {completedBookings.length === 0 ? (
+                  <EmptyState 
+                    icon={<CheckCircle className="w-12 h-12" />}
+                    title="No completed bookings"
+                    description="Your completed bookings will appear here"
+                  />
+                ) : (
+                  completedBookings.map((booking) => (
+                    <BookingCard 
+                      key={booking.id} 
+                      booking={booking} 
+                      onUpdate={fetchBookings} 
+                    />
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="cancelled" className="space-y-4">
+                {cancelledBookings.length === 0 ? (
+                  <EmptyState 
+                    icon={<XCircle className="w-12 h-12" />}
+                    title="No cancelled bookings"
+                    description="You haven't cancelled any bookings"
+                  />
+                ) : (
+                  cancelledBookings.map((booking) => (
+                    <BookingCard 
+                      key={booking.id} 
+                      booking={booking} 
+                      onUpdate={fetchBookings} 
+                    />
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
           </section>
         )}
+
+        {/* Helper Components */}
+        {null}
       </main>
     </div>
   );
 };
+
+// Empty State Component
+const EmptyState = ({ 
+  icon, 
+  title, 
+  description 
+}: { 
+  icon: React.ReactNode; 
+  title: string; 
+  description: string;
+}) => (
+  <div className="text-center py-12">
+    <div className="text-muted-foreground mb-4 flex justify-center">{icon}</div>
+    <h3 className="text-lg font-semibold mb-2">{title}</h3>
+    <p className="text-muted-foreground text-sm">{description}</p>
+  </div>
+);
+
+// Empty Bookings Component
+const EmptyBookings = ({ onBrowse }: { onBrowse: () => void }) => (
+  <div className="text-center py-12">
+    <Calendar className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+    <h3 className="text-xl font-semibold mb-2">No bookings yet</h3>
+    <p className="text-muted-foreground mb-4">
+      Find a service provider and make your first booking!
+    </p>
+    <Button onClick={onBrowse}>Browse Providers</Button>
+  </div>
+);
 
 export default CustomerDashboard;
