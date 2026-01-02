@@ -118,6 +118,68 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          booking_id: string
+          checkout_request_id: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          merchant_request_id: string | null
+          mpesa_receipt_number: string | null
+          phone_number: string
+          provider_id: string
+          result_code: string | null
+          result_description: string | null
+          status: string
+          transaction_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          checkout_request_id?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          merchant_request_id?: string | null
+          mpesa_receipt_number?: string | null
+          phone_number: string
+          provider_id: string
+          result_code?: string | null
+          result_description?: string | null
+          status?: string
+          transaction_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          checkout_request_id?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          merchant_request_id?: string | null
+          mpesa_receipt_number?: string | null
+          phone_number?: string
+          provider_id?: string
+          result_code?: string | null
+          result_description?: string | null
+          status?: string
+          transaction_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null
