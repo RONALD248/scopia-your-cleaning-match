@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { 
   Calendar, Clock, MapPin, Star, DollarSign, 
-  Users, CheckCircle, XCircle, LogOut, Settings, Navigation, MapPinOff, MessageCircle
+  Users, CheckCircle, XCircle, LogOut, Settings, Navigation, MapPinOff, MessageCircle, Compass
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -413,6 +413,14 @@ const ProviderDashboard = () => {
                         >
                           <MessageCircle className="w-4 h-4 mr-2" />
                           Chat
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                          onClick={() => navigate(`/navigate/${booking.id}`)}
+                        >
+                          <Compass className="w-4 h-4 mr-2" />
+                          Navigate
                         </Button>
                         {booking.status === 'accepted' && (
                           <>

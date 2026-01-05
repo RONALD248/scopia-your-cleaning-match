@@ -3,5 +3,8 @@ project_id = "azqnixndptolrjcilhri"
 [functions.get-mapbox-token]
 verify_jwt = false
 
+[functions.get-directions]
+verify_jwt = false
+
 [functions.push-notification]
 verify_jwt = false
