@@ -31,7 +31,7 @@ const LocationPicker = ({ onLocationSelect, initialLat, initialLng, className = 
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { token: mapToken, loading: tokenLoading, error: tokenError } = useMapboxToken();
 
   useEffect(() => {
