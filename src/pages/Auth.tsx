@@ -63,11 +63,12 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 text-white mb-4">
-            <MapPin className="w-10 h-10" />
-            <h1 className="text-4xl font-bold">SCOPIA</h1>
-          </div>
-          <p className="text-white/90 text-lg">Connect with cleaning services near you</p>
+          <img
+            src={scopiaLogo.url}
+            alt="SCOPIA — Move Better. Clean Smarter. Live Easier."
+            className="mx-auto w-64 max-w-full mb-2 drop-shadow-xl"
+          />
+          <p className="text-primary-foreground/90 text-lg">Connect with cleaning &amp; moving services near you</p>
         </div>
 
         <Card>

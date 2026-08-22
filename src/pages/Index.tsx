@@ -34,8 +34,8 @@ const Index = () => {
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2 text-primary">
-            <MapPin className="w-8 h-8" />
-            <span className="text-2xl font-bold">SCOPIA</span>
+            <img src="/icon-192.png" alt="SCOPIA logo" className="w-9 h-9 rounded-lg" />
+            <span className="text-2xl font-bold tracking-wide">SCOPIA</span>
           </div>
           <div className="flex items-center gap-4">
             {user ? (
@@ -173,8 +173,8 @@ const Index = () => {
         <div className="container">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2 text-primary">
-              <MapPin className="w-6 h-6" />
-              <span className="text-xl font-bold">SCOPIA</span>
+              <img src="/icon-192.png" alt="SCOPIA logo" className="w-7 h-7 rounded-md" />
+              <span className="text-xl font-bold tracking-wide">SCOPIA</span>
             </div>
             <p className="text-sm text-muted-foreground">
               © 2024 SCOPIA. Connecting customers with cleaning services.
