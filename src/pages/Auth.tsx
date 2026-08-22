@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { MapPin } from "lucide-react";
+import scopiaLogo from "@/assets/scopia-logo.png.asset.json";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
